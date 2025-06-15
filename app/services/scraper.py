@@ -44,26 +44,6 @@ class ContentScraper:
                     'author': author
                 })
             
-            # Process all content at once
-            seen_paragraphs = set()
-            paragraph_counts = {}
-            
-            # First pass - collect all cleaned paragraphs
-            for raw_content in raw_contents:
-                paragraphs = raw_content['content'].split('\n\n')
-                for paragraph in paragraphs:
-                    cleaned = ''.join(paragraph.split())
-                    if cleaned:
-                        seen_paragraphs.add(cleaned)
-            
-            # Second pass - count paragraph occurrences
-            for raw_content in raw_contents:
-                paragraphs = raw_content['content'].split('\n\n')
-                for paragraph in paragraphs:
-                    cleaned = ''.join(paragraph.split())
-                    if cleaned:
-                        paragraph_counts[cleaned] = paragraph_counts.get(cleaned, 0) + 1
-            
             # Process and create ContentItems
             items = []
             for raw_content in raw_contents:
@@ -84,36 +64,44 @@ class ContentScraper:
                         if len(words) >= 2 and all(word[0].isupper() for word in words):
                             author = name
                             break
+                        elif "nilmamano" in base_url:
+                            author = "Nil Mamano"
+                            break
                 
                 # Process and clean content
                 cleaned_paragraphs = []
                 first_h1 = True
-                first_paragraph = True
+                found_first_heading = False
                 
                 for paragraph in content.split('\n\n'):
-                    # Remove code block markers
-                    paragraph = paragraph.replace('```', '')
-                    cleaned = ''.join(paragraph.split())
-                    
-                    # Skip if paragraph is empty or not unique
-                    if not cleaned or cleaned not in paragraph_counts or paragraph_counts[cleaned] != 1:
-                        continue
-                    
-                    # Handle first paragraph and H1 heading
-                    if first_paragraph:
-                        first_paragraph = False
+                    # Basic cleaning
+                    paragraph = paragraph.strip()
+                    if not paragraph:
                         continue
                         
-                    if paragraph.strip().startswith('# ') and first_h1:
-                        title = paragraph.strip().replace('# ', '')
+                    # Remove code block markers
+                    paragraph = paragraph.replace('```', '')
+                    
+                    # Check if this is a heading
+                    is_heading = paragraph.startswith('# ')
+                    
+                    # Skip content before first heading
+                    if not found_first_heading and not is_heading:
+                        continue
+                    
+                    # Handle H1 heading
+                    if is_heading and first_h1:
+                        title = paragraph.replace('# ', '')
                         cleaned_paragraphs.append(f'# [{title}]({source_url})')
                         first_h1 = False
+                        found_first_heading = True
                     else:
                         # Fix relative links
                         if '](/' in paragraph:
-                            # Use the base URL for relative links
                             paragraph = paragraph.replace('](/', f']({base_url}/')
-                        cleaned_paragraphs.append(paragraph.strip())
+                        cleaned_paragraphs.append(paragraph)
+                        if is_heading:
+                            found_first_heading = True
                 
                 # Join cleaned paragraphs with double newlines
                 cleaned_content = '\n\n'.join(cleaned_paragraphs)
