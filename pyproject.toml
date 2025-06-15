@@ -5,6 +5,7 @@ description = "OGtool demo scraper solution"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "bs4>=0.0.2",
     "python-dotenv>=1.1.0",
     "tavily-python>=0.7.6",
 ]
