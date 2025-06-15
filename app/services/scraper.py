@@ -93,7 +93,7 @@ class ContentScraper:
         return ContentItem(
             title=title,
             content=cleaned_content,
-            content_type=ContentType.BLOG,
+            content_type=content_type,
             source_url=source_url,
             author=author
         )
@@ -134,25 +134,47 @@ class ContentScraper:
         except Exception as e:
             raise Exception(f"Error scraping blog: {str(e)}")
     
-    async def scrape_company_guides(self, url: str) -> List[ContentItem]:
-        """Scrape company guides from interviewing.io"""
+    async def scrape_guides(self, url: str) -> List[ContentItem]:
+        """Scrape guides from interviewing.io"""
         base_url = self._get_base_url(url)
         try:
             response = requests.get(url)
             soup = BeautifulSoup(response.content, 'html.parser')
             
-            # Find all links containing "Interview process & questions"
-            interview_links = []
-            for link in soup.find_all('a'):
-                if "Interview process & questions" in link.text:
-                    href = link.get('href')
-                    if href:
+            if "companies" in url:
+                # Find all links containing "Interview process & questions"
+                interview_links = []
+                for link in soup.find_all('a'):
+                    if "Interview process & questions" in link.text:
+                        href = link.get('href')
+                        if href:
+                            if href.startswith('/'):
+                                href = f"{base_url}{href}"
+                            href = href.split('#')[0]
+                            interview_links.append(href)
+                
+                if not interview_links:
+                    return []
+            elif "interview-guides" in url:
+                # Target class from the question
+                target_class = "col-span-2 mb-14 mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4 lg:grid-cols-2 lg:gap-6"
+
+                # Find the target div
+                target_div = soup.find("div", class_=target_class)
+
+                # Extract all hrefs within that div
+                interview_links = []
+                if target_div:
+                    for a_tag in target_div.find_all("a", href=True):
+                        href = a_tag["href"]
                         if href.startswith('/'):
                             href = f"{base_url}{href}"
                         href = href.split('#')[0]
                         interview_links.append(href)
             
-            if not interview_links:
+                if not interview_links:
+                    return []
+            else:
                 return []
             
             all_responses = []
@@ -184,9 +206,9 @@ class ContentScraper:
             return items
             
         except requests.RequestException as e:
-            raise Exception(f"Error fetching company guides: {str(e)}")
+            raise Exception(f"Error fetching guides: {str(e)}")
         except Exception as e:
-            raise Exception(f"Error processing company guides: {str(e)}")
+            raise Exception(f"Error processing guides: {str(e)}")
     
     async def process_pdf(self, file_path: str) -> List[ContentItem]:
         """Process PDF content using Mistral OCR"""

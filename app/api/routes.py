@@ -19,11 +19,11 @@ async def scrape_blog(request: ScrapeRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/scrape/company-guides", response_model=ContentResponse)
-async def scrape_company_guides(request: ScrapeRequest):
-    """Scrape company guides from interviewing.io"""
+@router.post("/scrape/guides", response_model=ContentResponse)
+async def scrape_guides(request: ScrapeRequest):
+    """Scrape guides from interviewing.io"""
     try:
-        items = await scraper.scrape_company_guides(
+        items = await scraper.scrape_guides(
             url=str(request.url)
         )
         return ContentResponse(team_id="aline123", items=items)
