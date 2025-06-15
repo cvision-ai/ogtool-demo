@@ -24,11 +24,9 @@ async def scrape_company_guides(request: ScrapeRequest):
     """Scrape company guides from interviewing.io"""
     try:
         items = await scraper.scrape_company_guides(
-            url=str(request.url),
-            team_id=request.team_id,
-            user_id=request.user_id
+            url=str(request.url)
         )
-        return ContentResponse(team_id=request.team_id, items=items)
+        return ContentResponse(team_id="aline123", items=items)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

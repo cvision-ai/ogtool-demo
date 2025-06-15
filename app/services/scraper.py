@@ -18,7 +18,7 @@ class ContentScraper:
         parsed = urlparse(url)
         return f"{parsed.scheme}://{parsed.netloc}"
     
-    def _process_raw_content(self, raw_content: dict, base_url: str) -> ContentItem:
+    def _process_raw_content(self, raw_content: dict, base_url: str, content_type: ContentType) -> ContentItem:
         """Process raw content and create a ContentItem
         
         Args:
@@ -49,6 +49,8 @@ class ContentScraper:
                 elif "nilmamano" in base_url:
                     author = "Nil Mamano"
                     break
+                else:
+                    author = None
         
         # Process and clean content
         cleaned_paragraphs = []
@@ -125,15 +127,16 @@ class ContentScraper:
             # Process and create ContentItems
             items = []
             for raw_content in raw_contents:
-                items.append(self._process_raw_content(raw_content, base_url))
+                items.append(self._process_raw_content(raw_content, base_url, ContentType.BLOG))
             
             return items
             
         except Exception as e:
             raise Exception(f"Error scraping blog: {str(e)}")
     
-    async def scrape_company_guides(self, url: str, team_id: str, user_id: str = None) -> List[ContentItem]:
+    async def scrape_company_guides(self, url: str) -> List[ContentItem]:
         """Scrape company guides from interviewing.io"""
+        base_url = self._get_base_url(url)
         try:
             response = requests.get(url)
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -145,35 +148,47 @@ class ContentScraper:
                     href = link.get('href')
                     if href:
                         if href.startswith('/'):
-                            href = f"https://interviewing.io{href}"
+                            href = f"{base_url}{href}"
+                        href = href.split('#')[0]
                         interview_links.append(href)
             
-            items = []
-            for link in interview_links:
+            if not interview_links:
+                return []
+            
+            all_responses = []
+            for i in range(0, len(interview_links), 20):
+                batch = interview_links[i:i+20]
                 extract_response = self.tavily_client.extract(
-                    urls=[link],
+                    urls=batch,
                     extract_depth="advanced",
                     include_images=True
                 )
+                all_responses.extend(extract_response.get('results', []))
+            # Process results into ContentItems
+            items = []
+            for result in all_responses:
+                content = result.get('raw_content', '')
+                title = result.get('title', '')
+                source_url = result.get('url', '')
                 
-                for result in extract_response.get('results', []):
-                    content = result.get('raw_content', '')
-                    title = result.get('title', '')
-                    
-                    items.append(ContentItem(
-                        title=title,
-                        content=content,
-                        content_type=ContentType.OTHER,
-                        source_url=link,
-                        user_id=user_id
-                    ))
+                # Clean and process the content
+                cleaned_content = self._process_raw_content({
+                    'content': content,
+                    'title': title,
+                    'source_url': source_url,
+                    'author': None
+                }, base_url, ContentType.OTHER)
+                
+                items.append(cleaned_content)
             
             return items
             
+        except requests.RequestException as e:
+            raise Exception(f"Error fetching company guides: {str(e)}")
         except Exception as e:
-            raise Exception(f"Error scraping company guides: {str(e)}")
+            raise Exception(f"Error processing company guides: {str(e)}")
     
-    async def process_pdf(self, file_path: str, team_id: str, user_id: str = None) -> List[ContentItem]:
+    async def process_pdf(self, file_path: str) -> List[ContentItem]:
         """Process PDF content using Mistral OCR"""
         try:
             client = Mistral(api_key=settings.MISTRAL_API_KEY)
@@ -204,7 +219,6 @@ class ContentScraper:
                 title=os.path.basename(file_path),
                 content=markdown_content,
                 content_type=ContentType.BOOK,
-                user_id=user_id
             )]
             
         except Exception as e:
