@@ -18,6 +18,84 @@ class ContentScraper:
         parsed = urlparse(url)
         return f"{parsed.scheme}://{parsed.netloc}"
     
+    def _process_raw_content(self, raw_content: dict, base_url: str) -> ContentItem:
+        """Process raw content and create a ContentItem
+        
+        Args:
+            raw_content (dict): Dictionary containing content, title, source_url, and author
+            base_url (str): Base URL of the blog for fixing relative links
+            
+        Returns:
+            ContentItem: Processed content item
+        """
+        content = raw_content['content']
+        title = raw_content['title']
+        source_url = raw_content['source_url']
+        
+        # Extract author name
+        paragraphs = content.split('\n\n')
+        author = None
+        for paragraph in paragraphs:
+            if paragraph.strip().startswith('By '):
+                # Extract the name after "By " and before any separator
+                name = paragraph.strip()[3:].strip()
+                # Split by common separators and take the first part
+                name = name.split('|')[0].split('-')[0].split('•')[0].strip()
+                # Check if it matches the pattern of having at least two words with first letters capitalized
+                words = name.split()
+                if len(words) >= 2 and all(word[0].isupper() for word in words):
+                    author = name
+                    break
+                elif "nilmamano" in base_url:
+                    author = "Nil Mamano"
+                    break
+        
+        # Process and clean content
+        cleaned_paragraphs = []
+        first_h1 = True
+        found_first_heading = False
+        
+        for paragraph in content.split('\n\n'):
+            # Basic cleaning
+            paragraph = paragraph.strip()
+            if not paragraph:
+                continue
+                
+            # Remove code block markers
+            paragraph = paragraph.replace('```', '')
+            
+            # Check if this is a heading
+            is_heading = paragraph.startswith('# ')
+            
+            # Skip content before first heading
+            if not found_first_heading and not is_heading:
+                continue
+            
+            # Handle H1 heading
+            if is_heading and first_h1:
+                title = paragraph.replace('# ', '')
+                cleaned_paragraphs.append(f'# [{title}]({source_url})')
+                first_h1 = False
+                found_first_heading = True
+            else:
+                # Fix relative links
+                if '](/' in paragraph:
+                    paragraph = paragraph.replace('](/', f']({base_url}/')
+                cleaned_paragraphs.append(paragraph)
+                if is_heading:
+                    found_first_heading = True
+        
+        # Join cleaned paragraphs with double newlines
+        cleaned_content = '\n\n'.join(cleaned_paragraphs)
+        
+        return ContentItem(
+            title=title,
+            content=cleaned_content,
+            content_type=ContentType.BLOG,
+            source_url=source_url,
+            author=author
+        )
+
     async def scrape_blog(self, url: str) -> List[ContentItem]:
         """Scrape blog content from a given URL"""
         try:
@@ -47,72 +125,7 @@ class ContentScraper:
             # Process and create ContentItems
             items = []
             for raw_content in raw_contents:
-                content = raw_content['content']
-                title = raw_content['title']
-                source_url = raw_content['source_url']
-                
-                # Extract author name
-                paragraphs = content.split('\n\n')
-                for paragraph in paragraphs:
-                    if paragraph.strip().startswith('By '):
-                        # Extract the name after "By " and before any separator
-                        name = paragraph.strip()[3:].strip()
-                        # Split by common separators and take the first part
-                        name = name.split('|')[0].split('-')[0].split('•')[0].strip()
-                        # Check if it matches the pattern of having at least two words with first letters capitalized
-                        words = name.split()
-                        if len(words) >= 2 and all(word[0].isupper() for word in words):
-                            author = name
-                            break
-                        elif "nilmamano" in base_url:
-                            author = "Nil Mamano"
-                            break
-                
-                # Process and clean content
-                cleaned_paragraphs = []
-                first_h1 = True
-                found_first_heading = False
-                
-                for paragraph in content.split('\n\n'):
-                    # Basic cleaning
-                    paragraph = paragraph.strip()
-                    if not paragraph:
-                        continue
-                        
-                    # Remove code block markers
-                    paragraph = paragraph.replace('```', '')
-                    
-                    # Check if this is a heading
-                    is_heading = paragraph.startswith('# ')
-                    
-                    # Skip content before first heading
-                    if not found_first_heading and not is_heading:
-                        continue
-                    
-                    # Handle H1 heading
-                    if is_heading and first_h1:
-                        title = paragraph.replace('# ', '')
-                        cleaned_paragraphs.append(f'# [{title}]({source_url})')
-                        first_h1 = False
-                        found_first_heading = True
-                    else:
-                        # Fix relative links
-                        if '](/' in paragraph:
-                            paragraph = paragraph.replace('](/', f']({base_url}/')
-                        cleaned_paragraphs.append(paragraph)
-                        if is_heading:
-                            found_first_heading = True
-                
-                # Join cleaned paragraphs with double newlines
-                cleaned_content = '\n\n'.join(cleaned_paragraphs)
-                
-                items.append(ContentItem(
-                    title=title,
-                    content=cleaned_content,
-                    content_type=ContentType.BLOG,
-                    source_url=source_url,
-                    author=author
-                ))
+                items.append(self._process_raw_content(raw_content, base_url))
             
             return items
             
