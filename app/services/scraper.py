@@ -241,6 +241,7 @@ class ContentScraper:
                 title=os.path.basename(file_path),
                 content=markdown_content,
                 content_type=ContentType.BOOK,
+                author="GAYLE L. MCDOWELL, MIKE MROCZKA, ALINE LERNER, NIL MAMANO"
             )]
             
         except Exception as e:

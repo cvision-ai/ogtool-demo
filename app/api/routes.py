@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from app.models.content import ScrapeRequest, PDFUploadRequest, ContentResponse
+from app.models.content import ScrapeRequest, ContentResponse
 from app.services.scraper import ContentScraper
 import os
 from app.core.config import settings
@@ -31,10 +31,7 @@ async def scrape_guides(request: ScrapeRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/process/pdf", response_model=ContentResponse)
-async def process_pdf(
-    file: UploadFile = File(...),
-    request: PDFUploadRequest = None
-):
+async def process_pdf(file: UploadFile = File(...)):
     """Process PDF content using Mistral OCR"""
     try:
         # Create upload directory if it doesn't exist
@@ -49,14 +46,12 @@ async def process_pdf(
         
         # Process PDF
         items = await scraper.process_pdf(
-            file_path=str(file_path),
-            team_id=request.team_id,
-            user_id=request.user_id
+            file_path=str(file_path)
         )
         
         # Clean up
         os.remove(file_path)
         
-        return ContentResponse(team_id=request.team_id, items=items)
+        return ContentResponse(team_id="aline123", items=items)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 

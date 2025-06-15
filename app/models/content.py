@@ -25,7 +25,3 @@ class ContentResponse(BaseModel):
 
 class ScrapeRequest(BaseModel):
     url: HttpUrl
-
-class PDFUploadRequest(BaseModel):
-    team_id: str
-    user_id: Optional[str] = None 
