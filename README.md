@@ -1,8 +1,8 @@
 # Save Aline Assignment
 
-**Hey, I'm [Ayesh](https://www.linkedin.com/in/ayesh-ahmad/), and I've saved Aline!**
+**Hey, I'm [Ayesh](https://www.linkedin.com/in/ayesh-ahmad/), and I've saved Aline! (and Quill (and Shrey))**
 
-_**Note**: Although my application was on behalf of CVision, do note that this assignment was solved by one individual only to keep submissions fair for other applicants. But we all do it this good ;)_
+_**Note**: Although my application was on behalf of CVision, do note that this assignment was solved by one individual only (me) to keep submissions fair for other applicants. Additionally we all have less than a year of experience, so I think we can compete, but we all do it this good ;)_
 
 # 📝 Overview
 

@@ -11,8 +11,10 @@ dependencies = [
     "pydantic-settings>=2.9.1",
     "python-dotenv>=1.1.0",
     "python-multipart>=0.0.20",
+    "selenium>=4.33.0",
     "tavily-python>=0.7.6",
     "uvicorn>=0.34.3",
+    "webdriver-manager>=4.0.2",
 ]
 
 [dependency-groups]
