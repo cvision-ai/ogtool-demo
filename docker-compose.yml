@@ -7,6 +7,12 @@ services:
       - "3000:3000"
     volumes:
       - .:/app
+    environment:
+      - SELENIUM_HOST=selenium
+      - SELENIUM_PORT=4444
+    depends_on:
+      selenium:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/docs"]
       interval: 30s
@@ -14,3 +20,25 @@ services:
       retries: 3
       start_period: 40s
     restart: unless-stopped
+
+  selenium:
+    image: selenium/standalone-chrome:latest
+    shm_size: '2gb'
+    environment:
+      - SE_NODE_MAX_SESSIONS=4
+      - SE_NODE_OVERRIDE_MAX_SESSIONS=true
+      - SE_VNC_NO_PASSWORD=1
+      - SE_START_XVFB=false
+    ports:
+      - "4444:4444"
+      - "7900:7900"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4444"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  chrome_profiles:

@@ -11,8 +11,7 @@ from urllib.parse import urlparse
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
+
 import time
 from difflib import SequenceMatcher
 
@@ -145,11 +144,20 @@ class ContentScraper:
     def _collect_urls_selenium(self, url: str) -> List[str]:
         """Collect unique URLs using Selenium."""
         options = webdriver.ChromeOptions()
-        options.add_argument('--headless')
+        options.add_argument('--headless=new')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--disable-software-rasterizer')
+        options.add_argument('--window-size=1920,1080')
         
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        selenium_host = os.getenv("SELENIUM_HOST", "selenium")
+        selenium_port = os.getenv("SELENIUM_PORT", "4444")
+        
+        driver = webdriver.Remote(
+            command_executor=f"http://{selenium_host}:{selenium_port}/wd/hub",
+            options=options
+        )
         unique_urls = set()
         
         try:

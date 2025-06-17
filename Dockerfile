@@ -1,8 +1,15 @@
 # Use Python 3.12 slim image as base
 FROM python:3.11-slim
 
-# The installer requires curl (and certificates) to download the release archive
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    build-essential \
+    libpq-dev \
+    wget \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
 
 # Download the latest installer
 ADD https://astral.sh/uv/install.sh /uv-installer.sh
@@ -20,10 +27,15 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 
 # Install dependencies using uv
-RUN uv pip install --system -e .
+RUN uv pip install --system -e . \
+    && uv pip install --system selenium
 
 # Copy application code
 COPY . .
+
+# Set Selenium environment variables
+ENV SELENIUM_HOST=selenium
+ENV SELENIUM_PORT=4444
 
 # Expose port
 EXPOSE 3000
