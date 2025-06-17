@@ -98,7 +98,7 @@ uvicorn app.main:app --reload
 docker compose up --build
 ```
 
-The API will be available at `http://localhost:8000`
+The API will be available at `http://localhost:3000`
 
 ## API Endpoints
 
