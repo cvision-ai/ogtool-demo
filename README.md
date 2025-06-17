@@ -57,40 +57,6 @@ Create a reusable, end-to-end tool that imports technical knowledge from multipl
 }
 ```
 
-# 🧩 Architecture
-
-/ogtool-demo
-│
-├── scrapers/
-│   ├── base_scraper.py
-│   ├── interviewing_io.py
-│   ├── nil_dsa.py
-│   ├── substack.py
-│   └── pdf_parser.py
-│
-├── formatters/
-│   └── markdown_cleaner.py
-│
-├── utils/
-│   └── json_exporter.py
-│
-├── main.py
-└── README.md
-
-▶️ How to Run
-
-git clone https://github.com/yourusername/aline-scraper.git
-cd aline-scraper
-
-# Set up your environment
-pip install -r requirements.txt
-
-# Run main script
-python main.py --source "interviewing.io" --team_id "aline123"
-To process PDFs:
-
-python main.py --pdf "path/to/book.pdf" --team_id "aline123"
-
 # Content Scraper API
 
 A FastAPI-based service for scraping and processing content from various sources, including blogs, company guides, and PDFs.
@@ -105,27 +71,31 @@ A FastAPI-based service for scraping and processing content from various sources
 
 ## Setup
 
-1. Create a virtual environment:
+1. Clone the repository
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+https://github.com/cvision-ai/ogtool-demo.git
 ```
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-3. Create a `.env` file with your API keys:
+2. Create a `.env` file with your API keys (copy and rename `.env.example`):
 ```
 TAVILY_API_KEY=your_tavily_api_key
 MISTRAL_API_KEY=your_mistral_api_key
 ```
 
-## Running the Server
+3. Set up your environment
+```bash
+uv sync
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+```
 
+4. Run main script
 ```bash
 uvicorn app.main:app --reload
+```
+
+5. Or use docker:
+```bash
+docker compose up --build
 ```
 
 The API will be available at `http://localhost:8000`
@@ -138,11 +108,18 @@ POST /api/v1/scrape/blog
 Content-Type: application/json
 
 {
-    "url": "https://interviewing.io/blog",
+    "url": "https://example.com/blog",
     "team_id": "your_team_id",
     "user_id": "optional_user_id"
 }
 ```
+
+This endpoint attempts to scrape blog content using the following strategy:
+1. First attempts to use Tavily's crawl API to fetch blog posts
+2. If no results are found, falls back to a Selenium-based approach that:
+   - Automatically discovers and collects all unique blog post URLs
+   - Uses Tavily's extract API to get content from the discovered URLs
+   - Processes and returns the content in a consistent format
 
 ### 2. Scrape Company Guides
 ```http
@@ -176,14 +153,26 @@ All endpoints return data in the following format:
         {
             "title": "Item Title",
             "content": "Markdown content",
-            "content_type": "blog|podcast_transcript|call_transcript|linkedin_post|reddit_comment|book|other",
-            "source_url": "optional-url",
-            "author": "",
-            "user_id": ""
+            "content_type": "blog|book|other",
+            "source_url": "URL where the content was found",
+            "author": "Author name if available, null otherwise",
+            "user_id": "optional_user_id"
         }
     ]
 }
 ```
+
+### Content Types
+- `blog`: Blog posts and articles
+- `book`: PDF book content processed through OCR
+- `other`: Other types of content (e.g., company guides)
+
+### Notes
+- The scraping system uses a combination of Tavily API and Selenium for robust content extraction
+- All content is returned in Markdown format for consistent rendering
+- URLs in the markdown content are automatically fixed to be absolute URLs
+- Images are included in the content where available
+- Author information is extracted when available, otherwise returns null
 
 ## Development
 
@@ -209,11 +198,3 @@ The API includes comprehensive error handling for:
 - File processing errors
 - Network issues
 - Invalid request formats
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
